@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-heur1_b_m.py — Эвристический алгоритм SBH: Binary Chip, Negative Errors
-Использование: python heur1_b_m.py < input.xml
-"""
+
 import sys, random
 import xml.etree.ElementTree as ET
 from itertools import product
@@ -110,8 +107,25 @@ def parse_xml(data):
 
 def main():
     random.seed(42)
-    n, k, probes = parse_xml(sys.stdin.read())
-    print(''.join(multi_start(probes, n, k)[:n]))
+
+    
+    import os
+    xml_file = "input.xml"   
+    if os.path.exists(xml_file):
+        with open(xml_file, encoding="utf-8") as f:
+            data = f.read()
+    else:
+        # ── Способ 2: запуск из командной строки: python heur1_b_m.py < input.xml
+        data = sys.stdin.read()
+
+    n, k, probes = parse_xml(data)
+    result = ''.join(multi_start(probes, n, k)[:n])
+    print(result)
+
+    
+    with open("output_heur.txt", "w") as out:
+        out.write(result + "\n")
+    print(f"[INFO] Wynik zachowany w output_heur.txt (dlugosc: {len(result)})")
 
 if __name__ == '__main__':
     main()
