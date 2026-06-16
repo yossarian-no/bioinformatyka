@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Binary Chip Err- | Bioinformatyka</title>
+<style>
+/* REDESIGN: ciemny, techniczny styl — inny od poprzedniego niebiesko-turkusowego szablonu */
+*{box-sizing:border-box}
+body{
+  margin:0;
+  padding:24px 0;
+  display:grid;
+  place-items:center;
+  gap:24px;
+  background:#08090f;
+  font-family:Inter,Segoe UI,Arial,sans-serif;
+}
+.slide-container{
+  width:1280px;
+  height:720px;
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  padding:54px 70px 54px 94px;
+  background:
+    radial-gradient(circle at 8% 12%,rgba(255,184,0,.22),transparent 28%),
+    radial-gradient(circle at 94% 12%,rgba(139,92,246,.18),transparent 26%),
+    linear-gradient(135deg,#111827 0%,#0b1020 52%,#090a12 100%);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 24px 80px rgba(0,0,0,.55);
+  color:#f8fafc;
+}
+.slide-container:before{
+  content:"";
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:18px;
+  background:linear-gradient(180deg,#f59e0b,#8b5cf6,#22c55e);
+}
+.slide-container:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:44px 44px;
+  mask-image:linear-gradient(90deg,rgba(0,0,0,.8),transparent 82%);
+  pointer-events:none;
+}
+h1,h2,h3{margin:0;color:#fff;font-family:Segoe UI,Arial,sans-serif;letter-spacing:-.03em}
+h1{font-size:74px;font-weight:900;line-height:.96;text-transform:uppercase}
+.slide-title{
+  font-size:42px;
+  font-weight:900;
+  margin-bottom:34px;
+  padding-bottom:0;
+  width:100%;
+  border:none;
+  text-transform:none;
+  letter-spacing:-.04em;
+  display:flex;
+  align-items:center;
+  gap:18px;
+}
+.slide-title:before{
+  content:"";
+  width:42px;height:42px;
+  border-radius:12px;
+  background:linear-gradient(135deg,#f59e0b,#8b5cf6);
+  box-shadow:0 0 28px rgba(245,158,11,.35);
+  flex:0 0 auto;
+}
+p,li,td,th{font-size:20px;color:#cbd5e1;line-height:1.48}
+strong{color:#fde68a}
+.content-area{flex-grow:1;display:flex;flex-direction:column;justify-content:center;width:100%;position:relative;z-index:2}
+.accent-bar{width:160px;height:5px;background:linear-gradient(90deg,#f59e0b,#8b5cf6,#22c55e);border-radius:999px;margin-bottom:28px}
+.two-column{display:grid;grid-template-columns:1.05fr .95fr;gap:46px;width:100%;align-items:center}
+.three-column{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;width:100%}
+.tile{
+  background:rgba(15,23,42,.68);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:26px 8px 26px 8px;
+  padding:28px;
+  height:100%;
+  box-shadow:0 18px 36px rgba(0,0,0,.24);
+  backdrop-filter:blur(4px);
+}
+.tile h3{font-size:25px;margin-bottom:12px;color:#fff}
+.icon{font-size:40px;margin-bottom:16px;filter:drop-shadow(0 0 10px rgba(245,158,11,.35))}
+.bg-decoration{position:absolute;right:-120px;bottom:-140px;width:520px;height:520px;border-radius:50%;background:conic-gradient(from 45deg,rgba(245,158,11,.16),rgba(139,92,246,.18),rgba(34,197,94,.12),rgba(245,158,11,.16));filter:blur(2px);z-index:1}
+.dark{background:linear-gradient(135deg,#0b1020 0%,#111827 50%,#2a0f3f 100%);justify-content:center;align-items:flex-start;text-align:left;padding-left:120px}
+.dark .content-area{align-items:flex-start;text-align:left;max-width:980px}.dark h1,.dark h2{color:#fff}.dark p{color:#d1d5db}.muted{color:#94a3b8}.dna-line{font-family:Cascadia Mono,Consolas,monospace;font-size:23px;letter-spacing:1px;color:#0f172a;background:linear-gradient(90deg,#fde68a,#fef3c7);border:none;border-radius:16px;padding:18px 22px;text-align:left;box-shadow:0 14px 30px rgba(245,158,11,.18)}
+.chip{background:#050816;border-radius:24px;padding:24px;display:grid;grid-template-columns:repeat(10,1fr);gap:10px;border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 0 42px rgba(139,92,246,.16),0 22px 50px rgba(0,0,0,.4)}
+.spot{aspect-ratio:1;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#22c55e);box-shadow:0 0 14px rgba(245,158,11,.4)}
+.spot.missing{background:rgba(244,63,94,.1);border:2px solid #fb7185;box-shadow:0 0 16px rgba(244,63,94,.25);display:grid;place-items:center}.spot.missing:after{content:'×';color:#fb7185;font-weight:900;font-size:24px}.compat{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.compat-card{border-radius:18px;padding:18px;text-align:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10)}.symbol{font-size:44px;font-weight:950;color:#fde68a}.set{font-size:22px;color:#86efac;font-weight:800}.flow{display:flex;align-items:center;justify-content:space-between;gap:18px}.node{width:154px;height:72px;border-radius:18px;background:#f59e0b;color:#111827;display:grid;place-items:center;font-weight:900;font-size:20px;box-shadow:0 12px 26px rgba(245,158,11,.22)}.node.green{background:#8b5cf6;color:#fff}.arrow{font-size:42px;color:#fde68a;font-weight:900}.formula{font-family:Cascadia Mono,Consolas,monospace;background:rgba(0,0,0,.35);border:1px solid rgba(245,158,11,.3);border-left:10px solid #f59e0b;padding:22px;border-radius:16px;font-size:25px;color:#fde68a}.table{width:100%;border-collapse:separate;border-spacing:0 10px}.table th{background:#8b5cf6;color:#fff;padding:14px 16px;text-align:left}.table th:first-child{border-radius:14px 0 0 14px}.table th:last-child{border-radius:0 14px 14px 0}.table td{padding:14px 16px;background:rgba(255,255,255,.06);border:none;color:#d1d5db}.table td:first-child{border-radius:14px 0 0 14px}.table td:last-child{border-radius:0 14px 14px 0}.bar-row{display:flex;align-items:center;gap:18px;margin:18px 0}.bar-label{flex:0 0 230px;text-align:right;font-weight:800;color:#fde68a;font-size:20px}.bar-outer{flex:1;background:rgba(255,255,255,.10);border-radius:10px;height:38px;overflow:hidden}.bar-inner{height:100%;background:linear-gradient(90deg,#8b5cf6,#f59e0b);display:flex;align-items:center;justify-content:flex-end;padding-right:14px;color:#111827;font-weight:900}.small{font-size:18px}.callout{background:rgba(244,63,94,.12);border:1px solid rgba(251,113,133,.55);border-left:10px solid #fb7185;border-radius:16px;padding:20px}.ok{background:rgba(34,197,94,.12);border:1px solid rgba(134,239,172,.42);border-left:10px solid #22c55e;border-radius:16px;padding:20px}.code{font-family:Cascadia Mono,Consolas,monospace;font-size:21px;color:#fde68a;background:rgba(0,0,0,.38);padding:16px;border-radius:14px;border:1px solid rgba(255,255,255,.10)}.footer{position:absolute;bottom:22px;right:40px;color:#64748b;font-size:14px}
+ul{padding-left:24px}li::marker{color:#f59e0b}
+</style>
+</head>
+<body>
+
+<div class="slide-container dark" id="slide1">
+  <div class="content-area">
+    <div class="accent-bar" style="margin:0 auto 30px"></div>
+    <h1>Binary Chip Err−</h1>
+    <p style="color:#11caa0;font-size:28px;letter-spacing:2px;margin-top:20px">Sekwencjonowanie przez hybrydyzację z błędami negatywnymi</p>
+    <p style="margin-top:42px;font-style:italic;font-size:22px">Vasil Kusmartsev 156202<br>Mateusz Kaźmierczak 160162</p>
+  </div>
+</div>
+
+<div class="slide-container" id="slide2">
+  <div class="bg-decoration"></div>
+  <div class="content-area" style="text-align:center">
+    <h2 style="font-size:58px;margin-bottom:20px">Definicja problemu</h2>
+    <div class="accent-bar" style="margin:0 auto"></div>
+    <p style="margin:32px auto 0;max-width:850px">Celem jest odtworzenie sekwencji DNA długości <strong>n</strong> na podstawie spektrum sond otrzymanego z układu typu <strong>binary chip</strong>, przy założeniu, że część poprawnych sond może nie wystąpić w danych.</p>
+  </div>
+</div>
+
+<div class="slide-container" id="slide3">
+  <h2 class="slide-title">Dane wejściowe</h2>
+  <div class="content-area">
+    <div class="three-column">
+      <div class="tile"><div class="icon">🧬</div><h3>Sekwencja</h3><p>Znana jest długość szukanej sekwencji <strong>n</strong> oraz fragment początkowy <strong>s₀</strong>.</p></div>
+      <div class="tile"><div class="icon">🔬</div><h3>Spektrum</h3><p>Dane zawierają zbiór sond zapisanych w elementach XML <strong>&lt;cell&gt;</strong>. Każda sonda ma długość <strong>k</strong>.</p></div>
+      <div class="tile"><div class="icon">⚠️</div><h3>Err−</h3><p>W spektrum mogą brakować poprawne sondy. Nie zakładamy, że wszystkie oligonukleotydy z DNA zostały odczytane.</p></div>
+    </div>
+    <div class="dna-line" style="margin-top:36px">start = GGTTTCACCGTGTTAGCCA &nbsp;&nbsp; n = 500</div>
+  </div>
+</div>
+
+<div class="slide-container" id="slide4">
+  <h2 class="slide-title">Binary Chip: symbole binarne</h2>
+  <div class="content-area">
+    <div class="two-column">
+      <div>
+        <p>W klasycznym SBH sonda składa się z dokładnych nukleotydów <strong>A/C/G/T</strong>. W binary chip część pozycji jest opisana symbolami niejednoznacznymi, które reprezentują pary nukleotydów.</p>
+        <p>Porównanie sond nie polega więc na równości znaków, ale na sprawdzeniu, czy ich zbiory możliwych nukleotydów mają część wspólną.</p>
+      </div>
+      <div class="compat">
+        <div class="compat-card"><div class="symbol">S</div><div class="set">{C,G}</div></div>
+        <div class="compat-card"><div class="symbol">W</div><div class="set">{A,T}</div></div>
+        <div class="compat-card"><div class="symbol">R</div><div class="set">{A,G}</div></div>
+        <div class="compat-card"><div class="symbol">Y</div><div class="set">{C,T}</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="slide-container" id="slide5">
+  <h2 class="slide-title">Błędy negatywne</h2>
+  <div class="content-area">
+    <div class="two-column">
+      <div>
+        <p><strong>Błąd negatywny</strong> oznacza, że poprawna sonda, która powinna znajdować się w spektrum, nie została odczytana.</p>
+        <ul>
+          <li>powstają luki w ścieżce składania DNA,</li>
+          <li>konieczne są większe przesunięcia między sondami,</li>
+          <li>algorytm nie może wymagać użycia wszystkich elementów spektrum.</li>
+        </ul>
+        <div class="callout"><p class="small"><strong>Skutek:</strong> szukamy najlepszej ścieżki, a nie cyklu przechodzącego przez wszystkie wierzchołki.</p></div>
+      </div>
+      <div class="chip">
+        <div class="spot"></div><div class="spot"></div><div class="spot missing"></div><div class="spot"></div><div class="spot"></div><div class="spot"></div><div class="spot missing"></div><div class="spot"></div><div class="spot"></div><div class="spot"></div>
+        <div class="spot missing"></div><div class="spot"></div><div class="spot"></div><div class="spot"></div><div class="spot"></div><div class="spot missing"></div><div class="spot"></div><div class="spot"></div><div class="spot"></div><div class="spot"></div>
+        <div class="spot"></div><div class="spot"></div><div class="spot missing"></div><div class="spot"></div><div class="spot"></div><div class="spot"></div><div class="spot"></div><div class="spot missing"></div><div class="spot"></div><div class="spot"></div>
+        <div class="spot"></div><div class="spot missing"></div><div class="spot"></div><div class="spot"></div><div class="spot"></div><div class="spot"></div><div class="spot"></div><div class="spot"></div><div class="spot missing"></div><div class="spot"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="slide-container" id="slide6">
+  <h2 class="slide-title">Nakładanie sond</h2>
+  <div class="content-area">
+    <div class="two-column">
+      <div>
+        <p>Dwie sondy mogą zostać połączone, jeżeli sufiks pierwszej sondy jest zgodny z prefiksem drugiej sondy. Dla binary chip zgodność oznacza przecięcie zbiorów możliwych nukleotydów.</p>
+        <div class="formula">match(a,b) ⇔ COMPAT(a) ∩ COMPAT(b) ≠ ∅</div>
+      </div>
+      <div>
+        <div class="dna-line">u = S S W S W<br>v = &nbsp;&nbsp;W S W R A</div>
+        <p style="text-align:center;margin-top:22px">Koszt łuku to liczba nowych znaków dodanych do sekwencji.</p>
+        <div class="formula">cᵢⱼ = k − overlap(i,j)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="slide-container" id="slide7">
+  <h2 class="slide-title">Model grafowy STS</h2>
+  <div class="content-area">
+    <div class="two-column">
+      <div>
+        <p>Problem sprowadzamy do <strong>Selective Traveling Salesman Problem</strong>.</p>
+        <ul>
+          <li><strong>Wierzchołki:</strong> sondy ze spektrum, zysk = 1.</li>
+          <li><strong>Łuki:</strong> możliwe przejścia między sondami.</li>
+          <li><strong>Koszt:</strong> przesunięcie wynikające z nałożenia.</li>
+          <li><strong>Budżet:</strong> łączny koszt ≤ <strong>n − |s₀|</strong>.</li>
+        </ul>
+      </div>
+      <div class="flow">
+        <div class="node">s₀</div><div class="arrow">→</div><div class="node green">s₁</div><div class="arrow">→</div><div class="node green">s₂</div><div class="arrow">→</div><div class="node green">s₃</div>
+      </div>
+    </div>
+    <div class="ok" style="margin-top:30px"><p class="small"><strong>Cel:</strong> znaleźć ścieżkę o największym zysku, której długość nie przekracza długości badanego DNA.</p></div>
+  </div>
+</div>
+
+<div class="slide-container" id="slide8">
+  <h2 class="slide-title">Algorytm dokładny: ILP</h2>
+  <div class="content-area">
+    <table class="table">
+      <thead><tr><th>Element</th><th>Znaczenie</th></tr></thead>
+      <tbody>
+        <tr><td><strong>xᵢⱼ ∈ {0,1}</strong></td><td>1, jeżeli łuk z sondy i do sondy j należy do rozwiązania.</td></tr>
+        <tr><td><strong>yᵢ ∈ {0,1}</strong></td><td>1, jeżeli sonda i została użyta w ścieżce.</td></tr>
+        <tr><td><strong>cᵢⱼ</strong></td><td>Koszt łuku, czyli liczba nowych nukleotydów dopisanych po przejściu i → j.</td></tr>
+        <tr><td><strong>Funkcja celu</strong></td><td>Maksymalizacja liczby użytych sond: <strong>max Σ yᵢ</strong>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="slide-container" id="slide9">
+  <h2 class="slide-title">Ograniczenia ILP</h2>
+  <div class="content-area">
+    <div class="tile" style="border-left:10px solid #003366">
+      <ul style="list-style:none;padding:0;margin:0">
+        <li><strong>Start:</strong> wierzchołek startowy ma co najwyżej jeden łuk wychodzący.</li>
+        <li><strong>Spójność ścieżki:</strong> każdy użyty wierzchołek ma dokładnie jeden łuk wchodzący i co najwyżej jeden wychodzący.</li>
+        <li><strong>Długość:</strong> suma kosztów wybranych łuków nie przekracza <strong>n − |s₀|</strong>.</li>
+        <li><strong>Brak osobnych cykli:</strong> dodawane są ograniczenia eliminujące podcykle niezależne od ścieżki startowej.</li>
+      </ul>
+    </div>
+    <div class="formula" style="margin-top:28px">Σ cᵢⱼ xᵢⱼ ≤ n − |s₀|</div>
+  </div>
+</div>
+
+<div class="slide-container" id="slide10">
+  <h2 class="slide-title">Algorytm heurystyczny</h2>
+  <div class="content-area">
+    <div class="three-column">
+      <div class="tile"><div class="icon">⚡</div><h3>Greedy</h3><p>Startujemy od s₀ i wybieramy sondę z najlepszym zgodnym nałożeniem, która mieści się w limicie długości.</p></div>
+      <div class="tile"><div class="icon">🔁</div><h3>Beam search</h3><p>Zamiast jednej ścieżki utrzymujemy kilka najlepszych kandydatów, co ogranicza ryzyko błędu zachłannego wyboru.</p></div>
+      <div class="tile"><div class="icon">🧩</div><h3>Uzupełnianie</h3><p>Jeśli sekwencja jest krótsza niż n, brakujące pozycje są uzupełniane konkretnymi nukleotydami zgodnymi z symbolami sond.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="slide-container" id="slide11">
+  <h2 class="slide-title">Porównanie podejść</h2>
+  <div class="content-area">
+    <div class="bar-row"><div class="bar-label">Dokładność ILP</div><div class="bar-outer"><div class="bar-inner" style="width:100%">optymalna</div></div></div>
+    <div class="bar-row"><div class="bar-label">Szybkość ILP</div><div class="bar-outer"><div class="bar-inner" style="width:25%">niska</div></div></div>
+    <div class="bar-row"><div class="bar-label">Dokładność heurystyki</div><div class="bar-outer"><div class="bar-inner" style="width:75%">wysoka</div></div></div>
+    <div class="bar-row"><div class="bar-label">Szybkość heurystyki</div><div class="bar-outer"><div class="bar-inner" style="width:95%">bardzo wysoka</div></div></div>
+    <div class="callout" style="margin-top:28px"><p class="small"><strong>Wniosek:</strong> algorytm dokładny służy do małych instancji i walidacji, natomiast heurystyka jest praktycznym rozwiązaniem dla większych danych oraz limitu czasu 100 s.</p></div>
+  </div>
+</div>
+
+<div class="slide-container" id="slide12">
+  <h2 class="slide-title">Plan implementacji</h2>
+  <div class="content-area">
+    <div class="two-column">
+      <div class="tile"><h3>Pliki wynikowe</h3><div class="code">exact_b_p.py<br>heur_b_p.py<br>sprawozdanie.docx<br>prezentacja.html</div></div>
+      <div class="tile"><h3>Warunki uruchomienia</h3><p>Programy działają wsadowo, czytają XML ze standardowego wejścia i wypisują wyłącznie rozpoznaną sekwencję DNA na standardowe wyjście.</p><div class="code">Get-Content -Raw input.xml | python heur_b_p.py</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="slide-container" id="slide13" style="background:#f8fafc;justify-content:center;align-items:center;text-align:center">
+  <div class="bg-decoration"></div>
+  <div class="content-area">
+    <h2 style="font-size:76px;margin-bottom:20px">Dziękujemy za uwagę</h2>
+    <div class="accent-bar" style="margin:0 auto 40px"></div>
+    <p style="font-size:24px">Binary Chip Err−</p>
+  </div>
+</div>
+
+</body>
+</html>
