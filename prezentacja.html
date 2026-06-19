@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Binary Chip Err- | Bioinformatyka</title>
 <style>
+/* REDESIGN: ciemny, techniczny styl — inny od poprzedniego niebiesko-turkusowego szablonu */
 *{box-sizing:border-box}
 body{
   margin:0;
@@ -241,33 +242,138 @@ ul{padding-left:24px}li::marker{color:#f59e0b}
   <h2 class="slide-title">Algorytm heurystyczny</h2>
   <div class="content-area">
     <div class="three-column">
-      <div class="tile"><div class="icon">⚡</div><h3>Greedy</h3><p>Startujemy od s₀ i wybieramy sondę z najlepszym zgodnym nałożeniem, która mieści się w limicie długości.</p></div>
-      <div class="tile"><div class="icon">🔁</div><h3>Beam search</h3><p>Zamiast jednej ścieżki utrzymujemy kilka najlepszych kandydatów, co ogranicza ryzyko błędu zachłannego wyboru.</p></div>
-      <div class="tile"><div class="icon">🧩</div><h3>Uzupełnianie</h3><p>Jeśli sekwencja jest krótsza niż n, brakujące pozycje są uzupełniane konkretnymi nukleotydami zgodnymi z symbolami sond.</p></div>
+
+      <div class="tile">
+        <div class="icon">⚡</div>
+        <h3>Greedy</h3>
+        <p>Startujemy od fragmentu startowego i w każdym kroku wybieramy niepokrytą sondę z najmniejszym kosztem przesunięcia.</p>
+      </div>
+
+      <div class="tile">
+        <div class="icon">🔁</div>
+        <h3>Randomized restarts</h3>
+        <p>Pierwszy przebieg jest deterministyczny, a kolejne losują jedną z kilku najlepszych sond, aby uniknąć błędu zachłannego wyboru.</p>
+      </div>
+
+      <div class="tile">
+        <div class="icon">🧩</div>
+        <h3>Local improvement</h3>
+        <p>Po zbudowaniu sekwencji algorytm próbuje pojedynczych mutacji nukleotydów i zostawia zmianę, jeśli nie pogarsza pokrycia sond.</p>
+      </div>
+
     </div>
   </div>
 </div>
 
 <div class="slide-container" id="slide11">
-  <h2 class="slide-title">Porównanie podejść</h2>
-  <div class="content-area">
-    <div class="bar-row"><div class="bar-label">Dokładność ILP</div><div class="bar-outer"><div class="bar-inner" style="width:100%">optymalna</div></div></div>
-    <div class="bar-row"><div class="bar-label">Szybkość ILP</div><div class="bar-outer"><div class="bar-inner" style="width:25%">niska</div></div></div>
-    <div class="bar-row"><div class="bar-label">Dokładność heurystyki</div><div class="bar-outer"><div class="bar-inner" style="width:75%">wysoka</div></div></div>
-    <div class="bar-row"><div class="bar-label">Szybkość heurystyki</div><div class="bar-outer"><div class="bar-inner" style="width:95%">bardzo wysoka</div></div></div>
-    <div class="callout" style="margin-top:28px"><p class="small"><strong>Wniosek:</strong> algorytm dokładny służy do małych instancji i walidacji, natomiast heurystyka jest praktycznym rozwiązaniem dla większych danych oraz limitu czasu 100 s.</p></div>
-  </div>
-</div>
+  <h2 class="slide-title" style="margin-bottom: 24px;">Przebieg algorytmu heurystycznego</h2>
 
-<div class="slide-container" id="slide12">
-  <h2 class="slide-title">Plan implementacji</h2>
-  <div class="content-area">
-    <div class="two-column">
-      <div class="tile"><h3>Pliki wynikowe</h3><div class="code">exact_b_p.py<br>heur_b_p.py<br>sprawozdanie.docx<br>prezentacja.html</div></div>
-      <div class="tile"><h3>Warunki uruchomienia</h3><p>Programy działają wsadowo, czytają XML ze standardowego wejścia i wypisują wyłącznie rozpoznaną sekwencję DNA na standardowe wyjście.</p><div class="code">Get-Content -Raw input.xml | python heur_b_p.py</div></div>
+  <div class="content-area" style="justify-content: flex-start;">
+    <div class="two-column" style="gap: 28px; align-items: stretch;">
+
+      <div class="tile" style="padding: 24px;">
+        <h3 style="margin-bottom: 12px;">1. Budowanie sekwencji</h3>
+        <p style="font-size: 18px; line-height: 1.35; margin-bottom: 14px;">
+          Algorytm rozpoczyna od fragmentu startowego z pliku XML.
+          Następnie krok po kroku dobiera niepokrytą sondę najlepiej
+          pasującą do końca aktualnej sekwencji.
+        </p>
+
+        <div class="code" style="font-size: 17px; line-height: 1.35; padding: 14px; margin-bottom: 20px;">
+          start_seq → greedy_construct<br>
+          wybór niepokrytej sondy<br>
+          append tylko nowej części
+        </div>
+
+        <h3 style="margin-bottom: 12px;">2. Kryterium wyboru</h3>
+        <p style="font-size: 18px; line-height: 1.35; margin-bottom: 14px;">
+          Dopasowanie oceniane jest przez koszt przesunięcia.
+          Przy remisie preferowana jest sonda z większą liczbą
+          możliwych dalszych dopasowań.
+        </p>
+
+        <div class="code" style="font-size: 17px; line-height: 1.35; padding: 14px;">
+          cost = k - overlap<br>
+          mniejszy cost = lepiej<br>
+          remis → większy future_score
+        </div>
+      </div>
+
+      <div class="tile" style="padding: 24px;">
+        <h3 style="margin-bottom: 12px;">3. Binary Chip Err−</h3>
+        <p style="font-size: 18px; line-height: 1.35; margin-bottom: 14px;">
+          Symbole binarne są porównywane przez zgodność zbiorów
+          możliwych nukleotydów. Błędy negatywne obsługujemy przez
+          dopuszczenie większych przesunięć między sondami.
+        </p>
+
+        <div class="code" style="font-size: 17px; line-height: 1.35; padding: 14px; margin-bottom: 20px;">
+          match(a, b) = wspólna część zbiorów<br>
+          S = {C, G} &nbsp;&nbsp; W = {A, T}<br>
+          Err− → shift od 1 do k
+        </div>
+
+        <h3 style="margin-bottom: 12px;">4. Wybór najlepszego wyniku</h3>
+        <p style="font-size: 18px; line-height: 1.35; margin-bottom: 14px;">
+          Program wykonuje deterministyczny przebieg zachłanny oraz
+          kilka losowych restartów. Po każdym przebiegu wynik może być
+          poprawiany pojedynczymi mutacjami.
+        </p>
+
+        <div class="code" style="font-size: 17px; line-height: 1.35; padding: 14px;">
+          greedy + randomized restarts<br>
+          local improvement<br>
+          max count_covered(dna, probes)
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
+
+
+<div class="slide-container" id="slide12">
+  <h2 class="slide-title">Porównanie podejść</h2>
+  <div class="content-area">
+    <div class="bar-row">
+      <div class="bar-label">Dokładność ILP</div>
+      <div class="bar-outer">
+        <div class="bar-inner" style="width:100%">optymalna dla małych instancji</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Szybkość ILP</div>
+      <div class="bar-outer">
+        <div class="bar-inner" style="width:25%">niska przy dużych danych</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Dokładność heurystyki</div>
+      <div class="bar-outer">
+        <div class="bar-inner" style="width:75%">dobra, bez gwarancji optimum</div>
+      </div>
+    </div>
+
+    <div class="bar-row">
+      <div class="bar-label">Szybkość heurystyki</div>
+      <div class="bar-outer">
+        <div class="bar-inner" style="width:95%">wysoka, limit 95 s</div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:28px">
+      <p class="small">
+        <strong>Wniosek:</strong> algorytm dokładny służy do małych instancji
+        i walidacji modelu, natomiast heurystyka jest praktycznym rozwiązaniem
+        dla większych danych. Jej wynik wybierany jest na podstawie liczby sond
+        pokrytych przez sekwencję DNA.
+      </p>
+    </div>
+  </div>
+</div>
+
 
 <div class="slide-container" id="slide13" style="background:radial-gradient(circle at 20% 20%, rgba(34,211,238,0.18), transparent 30%), radial-gradient(circle at 80% 70%, rgba(99,102,241,0.20), transparent 35%), linear-gradient(135deg,#050816 0%,#0f172a 55%,#111827 100%);justify-content:center;align-items:center;text-align:center">
   <div class="bg-decoration" style="opacity:.45"></div>
