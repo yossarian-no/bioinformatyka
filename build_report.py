@@ -187,7 +187,6 @@ def build_document(output_path=DEFAULT_OUTPUT):
             ("Y", "C, T"),
             ("S", "G, C"),
             ("W", "A, T"),
-            ("N / Z / P", "A, C, G, T"),
         ],
         [4, 10],
     )
