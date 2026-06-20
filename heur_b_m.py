@@ -398,7 +398,9 @@ def greedy_construct(probes, n, start_seq, future_score, rng, randomized=False):
     return dna[:n]
 
 
-def improve_by_point_mutations(dna, probes, n, rng, deadline):
+def improve_by_point_mutations(
+    dna, probes, n, rng, deadline, fixed_prefix_length=0
+):
     """
     Small local improvement.
 
@@ -416,13 +418,18 @@ def improve_by_point_mutations(dna, probes, n, rng, deadline):
     if best_score == len(probes):
         return ''.join(best)
 
+    fixed_prefix_length = min(max(fixed_prefix_length, 0), n)
+
+    if fixed_prefix_length == n:
+        return ''.join(best)
+
     attempts = min(300, max(30, n))
 
     for _ in range(attempts):
         if time.time() >= deadline:
             break
 
-        pos = rng.randrange(n)
+        pos = rng.randrange(fixed_prefix_length, n)
         old = best[pos]
 
         bases = BASE_ORDER[:]
@@ -496,7 +503,14 @@ def solve_heuristic(n, k, start_seq, probes):
         )
 
         if time.time() < deadline:
-            dna = improve_by_point_mutations(dna, probes, n, rng, deadline)
+            dna = improve_by_point_mutations(
+                dna,
+                probes,
+                n,
+                rng,
+                deadline,
+                fixed_prefix_length=len(start_seq),
+            )
 
         sc = count_covered(dna, probes)
 

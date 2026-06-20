@@ -31,11 +31,11 @@ COMPAT = {
 }
 
 BASE_ORDER = ['A', 'C', 'G', 'T']
-START = -1
 
-# Для сдачи с лимитом 100 секунд лучше оставить 95.
-# Для настоящего exact без ограничения времени поставь None.
+# A limit slightly shorter than the platform limit leaves enough time
+# to parse the input and print the result.
 TIME_LIMIT_SECONDS = 95
+DEBUG = False
 
 
 def match(a, b):
@@ -86,59 +86,11 @@ def parse_xml(data):
     return n, k, start_seq, probes
 
 
-def get_min_shift(u, v):
-    """
-    cost(u, v) = k - overlap(u, v)
-
-    Возвращает количество новых нуклеотидов, которое нужно добавить,
-    если поставить v после u.
-    """
-    k = len(v)
-    max_overlap = min(len(u), k - 1)
-
-    for shift in range(1, k + 1):
-        overlap_len = k - shift
-
-        if overlap_len > max_overlap:
-            continue
-
-        if overlap_len <= 0:
-            return k
-
-        start = len(u) - overlap_len
-        ok = True
-
-        for i in range(overlap_len):
-            if not match(u[start + i], v[i]):
-                ok = False
-                break
-
-        if ok:
-            return shift
-
-    return k
-
-
-def append_probe(dna, probe, cost, n):
-    remaining = n - len(dna)
-
-    if remaining <= 0:
-        return dna
-
-    cost = min(cost, remaining)
-
-    if cost <= 0:
-        return dna
-
-    addition = ''.join(concretize_symbol(ch) for ch in probe[-cost:])
-
-    return dna + addition
-
-
 def fallback_sequence(n, start_seq):
     """
-    Запасной вывод, чтобы программа всегда завершалась и печатала ДНК.
-    ВАЖНО: это не exact-решение. Это только технический fallback.
+    Return a valid-length DNA sequence when the solver has no solution.
+
+    This is only a technical fallback and is not guaranteed to be optimal.
     """
     if start_seq:
         dna = concretize_sequence(start_seq)
@@ -151,253 +103,141 @@ def fallback_sequence(n, start_seq):
     return dna[:n]
 
 
-def build_graph(n, start_seq, probes):
-    """
-    Строим полный ориентированный граф перекрытий.
-
-    Вершины:
-        0..m-1 — зонды
-        START = -1 — виртуальный старт
-
-    Дуга i -> j имеет стоимость c_ij.
-    """
-    m = len(probes)
-    arcs = []
-    costs = {}
-
-    budget = n - len(start_seq)
-
-    if budget < 0:
-        budget = 0
-
-    for j in range(m):
-        c = get_min_shift(start_seq, probes[j]) if start_seq else len(probes[j])
-
-        if c <= budget:
-            arcs.append((START, j))
-            costs[(START, j)] = c
-
-    for i in range(m):
-        u = probes[i]
-
-        for j in range(m):
-            if i == j:
-                continue
-
-            v = probes[j]
-            c = get_min_shift(u, v)
-
-            if c <= budget:
-                arcs.append((i, j))
-                costs[(i, j)] = c
-
-    return arcs, costs, budget
-
-
 def selected_value(var):
     val = pulp.value(var)
     return val is not None and val > 0.5
 
 
-def find_subtours(x, y, m):
+def compatible_bases(symbol):
+    return COMPAT.get(symbol, {symbol}) & set(BASE_ORDER)
+
+
+def candidate_positions(n, start_seq, probe):
     """
-    Находит отдельные циклы в текущем ILP-решении.
-
-    В корректном решении должна быть одна ścieżka wychodząca ze startu.
-    Нельзя иметь отдельные циклы вида:
-        a -> b -> c -> a
+    Return positions where the probe does not conflict with the known prefix.
     """
-    selected_nodes = set()
+    positions = []
+    k = len(probe)
 
-    for i in range(m):
-        if selected_value(y[i]):
-            selected_nodes.add(i)
+    for start in range(n - k + 1):
+        feasible = True
 
-    successor = {}
+        for offset, symbol in enumerate(probe):
+            pos = start + offset
 
-    for (i, j), var in x.items():
-        if selected_value(var):
-            successor[i] = j
+            if pos < len(start_seq) and not match(start_seq[pos], symbol):
+                feasible = False
+                break
 
-    reachable = set()
-    cur = successor.get(START)
+        if feasible:
+            positions.append(start)
 
-    while cur is not None and cur not in reachable:
-        reachable.add(cur)
-        cur = successor.get(cur)
-
-    unreachable = selected_nodes - reachable
-
-    cycles = []
-    seen_global = set()
-
-    for node in list(unreachable):
-        if node in seen_global:
-            continue
-
-        path = []
-        pos = {}
-        cur = node
-
-        while cur is not None and cur not in pos and cur not in seen_global:
-            pos[cur] = len(path)
-            path.append(cur)
-            seen_global.add(cur)
-            cur = successor.get(cur)
-
-        if cur in pos:
-            cycle = path[pos[cur]:]
-
-            if len(cycle) > 0:
-                cycles.append(cycle)
-
-    return cycles
+    return positions
 
 
-def build_dna_from_solution(x, costs, probes, start_seq, n):
-    dna = concretize_sequence(start_seq)
-    current = START
-    visited = set()
-
-    while current in x_successor(x):
-        successor = x_successor(x)[current]
-
-        if successor in visited:
-            break
-
-        visited.add(successor)
-
-        cost = costs[(current, successor)]
-        dna = append_probe(dna, probes[successor], cost, n)
-
-        current = successor
-
-        if len(dna) >= n:
-            break
-
-    if len(dna) < n:
-        dna += 'A' * (n - len(dna))
-
-    return dna[:n]
-
-
-def x_successor(x):
-    succ = {}
-
-    for (i, j), var in x.items():
-        if selected_value(var):
-            succ[i] = j
-
-    return succ
-
-
-def solve_exact_ilp(n, k, start_seq, probes):
+def solve_exact_ilp(n, k, start_seq, probes, solver_name=None, threads=1):
     """
-    Dokładny algorytm oparty o ILP:
+    Solve the SBH problem using an exact ILP model.
 
-    x_ij = 1, jeżeli łuk i -> j należy do rozwiązania
-    y_i  = 1, jeżeli sonda i została użyta
+    b[p,a] = 1 if nucleotide a is selected at sequence position p.
+    z[i,t] = 1 if probe i starts at sequence position t.
+    y[i]   = 1 if probe i is covered by the resulting sequence.
 
-    Cel:
-        max sum y_i
-
-    Ograniczenia:
-        - start ma co najwyżej jeden łuk wychodzący
-        - użyty wierzchołek ma dokładnie jeden łuk wchodzący
-        - użyty wierzchołek ma co najwyżej jeden łuk wychodzący
-        - suma kosztów łuków nie przekracza budżetu długości
-        - brak osobnych cykli
+    The model maximizes the number of distinct covered probes. Each selected
+    probe placement is linked directly to the sequence nucleotides while
+    fully respecting IUPAC compatibility. This avoids the graph-model error
+    where pairwise probe compatibility did not guarantee one consistent
+    concretization for all overlapping probes.
     """
-    m = len(probes)
-
-    if m == 0:
+    if not probes:
         return fallback_sequence(n, start_seq)
 
     if len(start_seq) >= n:
         return concretize_sequence(start_seq)[:n]
 
-    arcs, costs, budget = build_graph(n, start_seq, probes)
+    model = pulp.LpProblem("Exact_Binary_Chip_Err_Minus_SBH", pulp.LpMaximize)
+    bases = {
+        (pos, base): pulp.LpVariable(f"b_{pos}_{base}", cat="Binary")
+        for pos in range(n)
+        for base in BASE_ORDER
+    }
 
-    if not arcs:
+    for pos in range(n):
+        model += pulp.lpSum(bases[(pos, base)] for base in BASE_ORDER) == 1
+
+    concrete_start = concretize_sequence(start_seq)[:n]
+    for pos, base in enumerate(concrete_start):
+        model += bases[(pos, base)] == 1
+
+    placements = {}
+    covered = {}
+
+    for i, probe in enumerate(probes):
+        covered[i] = pulp.LpVariable(f"y_{i}", cat="Binary")
+        positions = candidate_positions(n, concrete_start, probe)
+
+        if not positions:
+            model += covered[i] == 0
+            continue
+
+        probe_placements = []
+
+        for start in positions:
+            var = pulp.LpVariable(f"z_{i}_{start}", cat="Binary")
+            placements[(i, start)] = var
+            probe_placements.append(var)
+
+            for offset, symbol in enumerate(probe):
+                allowed = compatible_bases(symbol)
+                model += var <= pulp.lpSum(
+                    bases[(start + offset, base)] for base in allowed
+                )
+
+        model += pulp.lpSum(probe_placements) == covered[i]
+
+    model += pulp.lpSum(covered.values())
+
+    if solver_name == 'gurobi' and hasattr(pulp, 'GUROBI_CMD'):
+        solver = pulp.GUROBI_CMD(msg=False)
+    elif solver_name == 'cplex' and hasattr(pulp, 'CPLEX_CMD'):
+        solver = pulp.CPLEX_CMD(msg=False)
+    else:
+        if TIME_LIMIT_SECONDS is None:
+            try:
+                solver = pulp.PULP_CBC_CMD(msg=False, threads=threads)
+            except TypeError:
+                solver = pulp.PULP_CBC_CMD(msg=False)
+        else:
+            try:
+                solver = pulp.PULP_CBC_CMD(msg=False, timeLimit=TIME_LIMIT_SECONDS, threads=threads)
+            except TypeError:
+                solver = pulp.PULP_CBC_CMD(msg=False, timeLimit=TIME_LIMIT_SECONDS)
+
+    status = model.solve(solver)
+    try:
+        status_name = pulp.LpStatus[status]
+    except Exception:
+        status_name = str(status)
+
+    if DEBUG:
+        sys.stderr.write(
+            f"DEBUG: status={status_name} n={n} probes={len(probes)} "
+            f"placements={len(placements)}\n"
+        )
+
+    has_solution = any(pulp.value(var) is not None for var in bases.values())
+    if status_name not in {"Optimal", "Not Solved"} and not has_solution:
         return fallback_sequence(n, start_seq)
 
-    model = pulp.LpProblem("Exact_Binary_Chip_Err_Minus_SBH", pulp.LpMaximize)
-
-    x = {
-        (i, j): pulp.LpVariable(f"x_{i}_{j}", lowBound=0, upBound=1, cat="Binary")
-        for (i, j) in arcs
-    }
-
-    y = {
-        i: pulp.LpVariable(f"y_{i}", lowBound=0, upBound=1, cat="Binary")
-        for i in range(m)
-    }
-
-    model += pulp.lpSum(y[i] for i in range(m))
-
-    model += (
-        pulp.lpSum(x[(START, j)] for j in range(m) if (START, j) in x) <= 1
-    )
-
-    for a in range(m):
-        incoming = pulp.lpSum(
-            x[(i, a)]
-            for i in [START] + list(range(m))
-            if (i, a) in x
+    dna = []
+    for pos in range(n):
+        chosen = next(
+            (base for base in BASE_ORDER if selected_value(bases[(pos, base)])),
+            'A',
         )
+        dna.append(chosen)
 
-        outgoing = pulp.lpSum(
-            x[(a, j)]
-            for j in range(m)
-            if (a, j) in x
-        )
-
-        model += incoming == y[a]
-        model += outgoing <= y[a]
-
-    model += (
-        pulp.lpSum(costs[(i, j)] * x[(i, j)] for (i, j) in x) <= budget
-    )
-
-    while True:
-        if TIME_LIMIT_SECONDS is None:
-            solver = pulp.PULP_CBC_CMD(msg=False)
-        else:
-            solver = pulp.PULP_CBC_CMD(msg=False, timeLimit=TIME_LIMIT_SECONDS)
-
-        status = model.solve(solver)
-        status_name = pulp.LpStatus[status]
-
-        if status_name != "Optimal":
-            return fallback_sequence(n, start_seq)
-
-        cycles = find_subtours(x, y, m)
-
-        if not cycles:
-            break
-
-        for cycle in cycles:
-            if len(cycle) == 1:
-                node = cycle[0]
-
-                if (node, node) in x:
-                    model += x[(node, node)] <= 0
-
-                continue
-
-            cycle_vars = []
-
-            cycle_set = set(cycle)
-
-            for u in cycle:
-                for v in cycle:
-                    if u != v and (u, v) in x:
-                        cycle_vars.append(x[(u, v)])
-
-            if cycle_vars:
-                model += pulp.lpSum(cycle_vars) <= len(cycle_set) - 1
-
-    return build_dna_from_solution(x, costs, probes, start_seq, n)
+    return ''.join(dna)
 
 
 def main():
@@ -407,6 +247,9 @@ def main():
         return
 
     n, k, start_seq, probes = parse_xml(data)
+
+    if DEBUG:
+        sys.stderr.write(f"DEBUG main: n={n} k={k} start_seq={start_seq!r} probes_count={len(probes)}\n")
 
     result = solve_exact_ilp(n, k, start_seq, probes)
 
